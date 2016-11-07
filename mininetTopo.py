@@ -68,6 +68,8 @@ def startNetwork():
     info('** Starting the network\n')
     net.start()
 
+    info('** Creating QoS\n')
+
     # Create QoS Queues
     os.system('sudo ovs-vsctl -- set Port interface qos=@newqos \
                 -- --id=@newqos create QoS type=linux-htb other-config:max-rate=link speed queues=0=@q0,1=@q1,2=@q2 \
