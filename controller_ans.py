@@ -23,8 +23,10 @@ class Controller(EventMixin):
     def __init__(self):
         self.listenTo(core.openflow)
         core.openflow_discovery.addListeners(self)
+
         # macmap is a 2d map, each switch has its own mac mapping
         self.macmap = {}
+        return
 
     def _handle_PacketIn (self, event):
         packet = event.parsed
@@ -83,19 +85,78 @@ class Controller(EventMixin):
 
         # Begin
         forward()
-
+        return
 
     def _handle_ConnectionUp(self, event):
-        dpid = dpid_to_str(event.dpid)
-        log.debug("Switch %s has come up.", dpid)
+        dpid = event.dpid
+        log.debug("# S%i: Switch %i has come up.", dpid, dpid)
+
+        f = open('policy.in')
+        firstline = f.readline().split(' ')
+
+        numFw = int(firstline[0])
+        numVpn = int(firstline[1])
+
+        # get the firewall rules
+        fw = []
+        for i in xrange(numFw):
+            line = f.readline().strip().split(', ')
+
+            src = line[0]
+            dst = line[1]
+            port = line[2]
+            fw.append((src, dst, port))
+
+        # get the vpns
+        vpns = []
+        for i in xrange(numVpn):
+            line = f.readline().strip().split(', ')
+            vpn = []
+            for host in line:
+                vpn.append(host)
+                vpns.append(vpn)
 
 	# Send the firewall policies to the switch
         def sendFirewallPolicy(connection, policy):
-            pass
 
+            # from first host to second host
+            src = policy[0]
+            dst = policy[1]
+            port = policy[2]
 
-        #for i in firewall policies:
-        #    sendFirewallPolicy(event.connection, i)
+            msg1 = of.ofp_flow_mod()
+            msg1.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
+            msg1.match.dl_type = 0x800
+            msg1.match.nw_proto = 6
+            msg1.match.nw_src = IPAddr(src)
+            msg1.match.nw_dst = IPAddr(dst)
+            msg1.match.tp_dst = int(port)
+            log.debug("# S%i, Firewall rule: src=%s, dst=%s:%s", dpid, src, dst, port)
+            connection.send(msg1)
+            log.debug("# S%i, Rule sent", dpid)
+
+            # from second host to first host
+            src = policy[1]
+            dst = policy[0]
+            port = policy[2]
+
+            msg2 = of.ofp_flow_mod()
+            msg2.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
+            msg2.match.dl_type = 0x800
+            msg2.match.nw_proto = 6
+            msg2.match.nw_src = IPAddr(src)
+            msg2.match.nw_dst = IPAddr(dst)
+            msg2.match.tp_dst = int(port)
+            log.debug("# S%i, Firewall rule: src=%s, dst=%s:%s", dpid, src, dst, port)
+            connection.send(msg1)
+            log.debug("# S%i, Rule sent", dpid)
+
+            return
+
+        for policy in fw:
+            sendFirewallPolicy(event.connection, policy)
+
+        return
 
 def launch():
     # Run discovery and spanning tree modules
