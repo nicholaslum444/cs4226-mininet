@@ -1,3 +1,8 @@
+'''
+Please add your name: Nicholas Lum Aik Yong
+Please add your matric number: A0108358B
+'''
+
 import os
 import sys
 import atexit
@@ -44,16 +49,6 @@ class TreeTopo(Topo):
             bandwidth = int(line[2])
             lconfig = {'bw':bandwidth}
             links.append(self.addLink(firstNode, secondNode, **lconfig))
-
-	# Add hosts
-        #self.addHost('H%d' % (host number))
-
-	# Add switches
-        #sconfig = {'dpid': "%016x" % (switch number)}
-        #self.addSwitch('S%d' % (switch number), **sconfig)
-
-	# Add links
-	#self.addLink(host1, host2)
 
 
 def startNetwork():
