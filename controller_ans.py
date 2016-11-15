@@ -26,6 +26,9 @@ class Controller(EventMixin):
 
         # macmap is a 2d map, each switch has its own mac mapping
         self.macmap = {}
+
+        # vpns is a 2d array, each array is its own vpn
+        self.vpns = []
         return
 
     def _handle_PacketIn (self, event):
@@ -42,6 +45,7 @@ class Controller(EventMixin):
             msg.match = of.ofp_match.from_packet(packet, inport)
             msg.actions.append(of.ofp_action_output(port = outport))
             msg.data = event.ofp
+            msg.priority = 2
             event.connection.send(msg)
             log.debug("# S%i: Message sent via port %i\n", dpid, outport)
             return
@@ -108,13 +112,12 @@ class Controller(EventMixin):
             fw.append((src, dst, port))
 
         # get the vpns
-        vpns = []
         for i in xrange(numVpn):
             line = f.readline().strip().split(', ')
             vpn = []
             for host in line:
                 vpn.append(host)
-                vpns.append(vpn)
+                self.vpns.append(vpn)
 
 	# Send the firewall policies to the switch
         def sendFirewallPolicy(connection, policy):
@@ -125,6 +128,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg1 = of.ofp_flow_mod()
+            msg1.priority = 1
             msg1.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg1.match.dl_type = 0x800
             msg1.match.nw_proto = 6
@@ -141,6 +145,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg2 = of.ofp_flow_mod()
+            msg2.priority = 1
             msg2.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg2.match.dl_type = 0x800
             msg2.match.nw_proto = 6
@@ -155,6 +160,9 @@ class Controller(EventMixin):
 
         for policy in fw:
             sendFirewallPolicy(event.connection, policy)
+
+        for vpn in vpns:
+            sendVpnPolicy(event.connection, vpn)
 
         return
 

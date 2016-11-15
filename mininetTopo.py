@@ -66,11 +66,11 @@ def startNetwork():
     info('** Creating QoS\n')
 
     # Create QoS Queues
-    os.system('sudo ovs-vsctl -- set Port interface qos=@newqos \
-                -- --id=@newqos create QoS type=linux-htb other-config:max-rate=link speed queues=0=@q0,1=@q1,2=@q2 \
-                -- --id=@q0 create queue other-config:max-rate=link speed other-config:min-rate=link speed \
-                -- --id=@q1 create queue other-config:min-rate=X \
-                -- --id=@q2 create queue other-config:max-rate=Y')
+    os.system('sudo ovs-vsctl -- set Port eth0 qos=@newqos \
+                -- --id=@newqos create QoS type=linux-htb other-config:max-rate=1000000 queues=0=@q0,1=@q1,2=@q2 \
+                -- --id=@q0 create queue other-config:max-rate=600000 other-config:min-rate=600000 \
+                -- --id=@q1 create queue other-config:min-rate=100000000 \
+                -- --id=@q2 create queue other-config:max-rate=50000000')
 
     info('** Running CLI\n')
     CLI(net)
