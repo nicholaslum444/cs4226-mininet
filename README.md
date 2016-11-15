@@ -12,6 +12,7 @@
 
 # Firewall Test
 ```bash
+# Set up the TCP ports
 H1 iperf -s -p 4001 &
 H4 iperf -s -p 4001 &
 H1 iperf -s -p 5000 &
@@ -21,13 +22,15 @@ H5 iperf -s -p 1000 &
 H2 iperf -s -p 5000 &
 H5 iperf -s -p 5000 &
 
-H1 iperf -c H4 -p 4001 -t 1 # wont work
-H4 iperf -c H1 -p 4001 -t 1 # wont work
+# These go to the blocked ports, should not work
+H1 iperf -c H4 -p 4001 -t 1
+H4 iperf -c H1 -p 4001 -t 1
+H2 iperf -c H5 -p 1000 -t 1
+H5 iperf -c H2 -p 1000 -t 1
+
+# These go to the working ports
 H1 iperf -c H4 -p 5000 -t 1
 H4 iperf -c H1 -p 5000 -t 1
-
-H2 iperf -c H5 -p 1000 -t 1 # wont work
-H5 iperf -c H2 -p 1000 -t 1 # wont work
 H2 iperf -c H5 -p 5000 -t 1
 H5 iperf -c H2 -p 5000 -t 1
 ```

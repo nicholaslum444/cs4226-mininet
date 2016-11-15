@@ -148,7 +148,7 @@ class Controller(EventMixin):
             msg2.match.nw_dst = IPAddr(dst)
             msg2.match.tp_dst = int(port)
             log.debug("# S%i, Firewall rule: src=%s, dst=%s:%s", dpid, src, dst, port)
-            connection.send(msg1)
+            connection.send(msg2)
             log.debug("# S%i, Rule sent", dpid)
 
             return
