@@ -47,7 +47,7 @@ On mininet, run `> pingallfull`. All hosts should be reachable. Note the RTT for
 
 Run `> pingallfull` again. All hosts should still be reachable. The RTT of the host pairs should be significantly smaller than before.
 
-Exit mininet when complete
+Exit mininet once completed.
 
 
 # Firewall Test
@@ -82,7 +82,7 @@ On the xterm of **H2**, run: `# iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.
 
 On the xterm of **all other hosts**, run: `# iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.0.5 -p 1000 -t 5`. Both commands should work.
 
-Finally, close all the xterm windows and exit mininet.
+Finally, close all the xterm windows and exit mininet once completed.
 
 
 # VPN Test
@@ -136,4 +136,5 @@ iperf H6 H7
 # H7:x H1, H2, H4, H5, H6
 ```
 
-Exit mininet.
+Exit mininet once completed.
+
