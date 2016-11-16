@@ -102,13 +102,6 @@ def startNetwork():
 
     print "QoS set up on %i interfaces" % (nints)
 
-    # OS system call
-    #os.system("sudo ovs-vsctl -- set Port S1-eth4 qos=@newqos \
-        #-- --id=@newqos create QoS type=linux-htb other-config:max-rate=10000000 queues=0=@q0,1=@q1,2=@q2 \
-        #-- --id=@q0 create queue other-config:max-rate=10000000 other-config:min-rate=10000000 \
-        #-- --id=@q1 create queue other-config:min-rate=1000000 \
-        #-- --id=@q2 create queue other-config:max-rate=500000")
-
     info('** Running CLI\n')
     CLI(net)
 

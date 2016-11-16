@@ -17,7 +17,7 @@ Open another terminal on the local machine and SSH to the VM.
 
 Navigate to pox directory `$ cd ~/pox`.
 
-Create a softlink to controller file: `$ ln -s ~/submission/controller_ans.py ~/pox/pox/misc/controller.py`.
+Create a softlink to controller file: `$ ln -s ~/submission/controller.py ~/pox/pox/misc/controller.py`.
 
 Create a softlink to policy file: `$ ln -s ~/submission/policy.in ~/pox/policy.in`.
 
