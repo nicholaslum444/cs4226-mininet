@@ -43,43 +43,97 @@ Leave the terminal open to interact with mininet.
 
 Run POX and mininet as above.
 
-On mininet, run `$ pingallfull`. All hosts should be reachable. Note the RTT for the host pairs.
+On mininet, run `> pingallfull`. All hosts should be reachable. Note the RTT for the host pairs.
 
-Run `$ pingallfull` again. All hosts should still be reachable. The RTT of the host pairs should be significantly smaller than before.
+Run `> pingallfull` again. All hosts should still be reachable. The RTT of the host pairs should be significantly smaller than before.
 
 Exit mininet when complete
 
 
 # Firewall Test
 
-On **mininet**, open the xterm windows for all the hosts: `$ xterm H1 H2 H3 H4 H5 H6 H7`.
+On **mininet**, open the xterm windows for all the hosts: `> xterm H1 H2 H3 H4 H5 H6 H7`.
 
 ### Server: H1
-On the xterm of **H1**, run: `$ iperf -s -D -p 4001 && iperf -s -D -p 5000`. This opens port 4001 (banned) and port 5000 (allowed).
+On the xterm of **H1**, run: `# iperf -s -D -p 4001 && iperf -s -D -p 5000`. This opens port 4001 (banned) and port 5000 (allowed).
 
-On the xterm of **H4**, run: `$ iperf -c 10.0.0.1 -p 5000 -t 5 && iperf -c 10.0.0.1 -p 4001 -t 5`. The second command should not work.
+On the xterm of **H4**, run: `# iperf -c 10.0.0.1 -p 5000 -t 5 && iperf -c 10.0.0.1 -p 4001 -t 5`. The second command should not work.
 
-On the xterm of **all other hosts**, run: `$ iperf -c 10.0.0.1 -p 5000 -t 5 && iperf -c 10.0.0.1 -p 4001 -t 5`. Both commands should work.
+On the xterm of **all other hosts**, run: `# iperf -c 10.0.0.1 -p 5000 -t 5 && iperf -c 10.0.0.1 -p 4001 -t 5`. Both commands should work.
 
 ### Server: H4
-On the xterm of **H4**, run: `$ iperf -s -D -p 4001 && iperf -s -D -p 5000`. This opens port 4001 (banned) and port 5000 (allowed).
+On the xterm of **H4**, run: `# iperf -s -D -p 4001 && iperf -s -D -p 5000`. This opens port 4001 (banned) and port 5000 (allowed).
 
-On the xterm of **H1**, run: `$ iperf -c 10.0.0.4 -p 5000 -t 5 && iperf -c 10.0.0.4 -p 4001 -t 5`. The second command should not work.
+On the xterm of **H1**, run: `# iperf -c 10.0.0.4 -p 5000 -t 5 && iperf -c 10.0.0.4 -p 4001 -t 5`. The second command should not work.
 
-On the xterm of **all other hosts** hosts, run: `$ iperf -c 10.0.0.4 -p 5000 -t 5 && iperf -c 10.0.0.4 -p 4001 -t 5`. Both commands should work.
+On the xterm of **all other hosts**, run: `# iperf -c 10.0.0.4 -p 5000 -t 5 && iperf -c 10.0.0.4 -p 4001 -t 5`. Both commands should work.
 
 ### Server: H2
-On the xterm of **H2**, run: `$ iperf -s -D -p 1000 && iperf -s -D -p 5000`. This opens port 1000 (banned) and port 5000 (allowed).
+On the xterm of **H2**, run: `# iperf -s -D -p 1000 && iperf -s -D -p 5000`. This opens port 1000 (banned) and port 5000 (allowed).
 
-On the xterm of **H5**, run: `$ iperf -c 10.0.0.2 -p 5000 -t 5 && iperf -c 10.0.0.2 -p 1000 -t 5`. The second command should not work.
+On the xterm of **H5**, run: `# iperf -c 10.0.0.2 -p 5000 -t 5 && iperf -c 10.0.0.2 -p 1000 -t 5`. The second command should not work.
 
-On the xterm of **all other hosts**, run: `$ iperf -c 10.0.0.2 -p 5000 -t 5 && iperf -c 10.0.0.2 -p 1000 -t 5`. Both commands should work.
+On the xterm of **all other hosts**, run: `# iperf -c 10.0.0.2 -p 5000 -t 5 && iperf -c 10.0.0.2 -p 1000 -t 5`. Both commands should work.
 
 ### Server: H5
-On the xterm of **H5**, run: `$ iperf -s -D -p 1000 && iperf -s -D -p 5000`. This opens port 1000 (banned) and port 5000 (allowed).
+On the xterm of **H5**, run: `# iperf -s -D -p 1000 && iperf -s -D -p 5000`. This opens port 1000 (banned) and port 5000 (allowed).
 
-On the xterm of **H2**, run: `$ iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.0.5 -p 1000 -t 5`. The second command should not work.
+On the xterm of **H2**, run: `# iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.0.5 -p 1000 -t 5`. The second command should not work.
 
-On the xterm of **all other hosts**, run: `$ iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.0.5 -p 1000 -t 5`. Both commands should work.
+On the xterm of **all other hosts**, run: `# iperf -c 10.0.0.5 -p 5000 -t 5 && iperf -c 10.0.0.5 -p 1000 -t 5`. Both commands should work.
 
 Finally, close all the xterm windows and exit mininet.
+
+
+# VPN Test
+
+Start mininet.
+
+On mininet, the bandwidths reported by the following commands should be representative of 100Mbps:
+```bash
+# H1, H4, H5
+iperf H1 H4
+iperf H1 H5
+iperf H4 H5
+
+# H2, H6
+iperf H2 H6
+
+# H3, H7
+iperf H3 H7
+```
+
+The bandwidths reported by the following commands should be less than 50Mbps:
+```bash
+# H1:x H2, H3, H6, H7
+iperf H1 H2
+iperf H1 H3
+iperf H1 H6
+iperf H1 H7
+
+# H2:x H1, H3, H4, H5, H7
+iperf H2 H3
+iperf H2 H4
+iperf H2 H5
+iperf H2 H7
+
+# H3:x H1, H2, H4, H5, H6
+iperf H3 H4
+iperf H3 H5
+iperf H3 H6
+
+# H4:x H2, H3, H6, H7
+iperf H4 H6
+iperf H4 H7
+
+# H5:x H2, H3, H6, H7
+iperf H5 H6
+iperf H5 H7
+
+# H6:x H1, H3, H4, H5, H7
+iperf H6 H7
+
+# H7:x H1, H2, H4, H5, H6
+```
+
+Exit mininet.

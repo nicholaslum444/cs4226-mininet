@@ -92,7 +92,7 @@ class Controller(EventMixin):
             elif isSameCompany(srcip, dstip):
                 qid = self.COMPANY_QUEUE
             else:
-                qip = self.EXTERNAL_QUEUE
+                qid = self.EXTERNAL_QUEUE
 
             # If multicast, flood
             if dst.is_multicast:
