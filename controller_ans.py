@@ -24,11 +24,21 @@ class Controller(EventMixin):
         self.listenTo(core.openflow)
         core.openflow_discovery.addListeners(self)
 
+        # priority number higher = higher priority
+        # firewall > vpn, if theres fw don't allow vpn through
+        self.FIREWALL_PRIORITY = 2000
+        self.VPN_PRIORITY = 1000
+
+        # queue ids
+        self.DEFAULT_QUEUE = 0
+        self.COMPANY_QUEUE = 1
+        self.EXTERNAL_QUEUE = 2
+
         # macmap is a 2d map, each switch has its own mac mapping
         self.macmap = {}
 
         # vpns is a 2d array, each array is its own vpn
-        self.vpns = []
+        self.vpns = {}
         return
 
     def _handle_PacketIn (self, event):
@@ -39,24 +49,15 @@ class Controller(EventMixin):
         inport = event.port
 
 	# install entries to the route table
-        def install_enqueue(event, packet, outport, q_id = None):
+        def install_enqueue(event, packet, outport, qid):
             log.debug("# S%i: Installing flow %s.%i -> %s.%i", dpid, src, inport, dst, outport)
-            #dstIp = packet.nw_dst
-            print dir(event.ofp)
-            #log.debug("# S%i: Destination IP: %s", dpid, dstIp)
             msg = of.ofp_flow_mod()
             msg.match = of.ofp_match.from_packet(packet, inport)
-            for vpn in self.vpns:
-                if True:
-                    pass
-            msg.actions.append(of.ofp_action_enqueue(port = outport, queue_id = 0))
+            msg.actions.append(of.ofp_action_enqueue(port = outport, queue_id = qid))
             msg.data = event.ofp
-            msg.priority = 2000
-            msg.idle_timeout = 0
-            msg.hard_timeout = 0
-            print msg
+            msg.priority = self.VPN_PRIORITY
             event.connection.send(msg)
-            log.debug("# S%i: Message sent via port %i\n", dpid, outport)
+            log.debug("# S%i: Rule sent: Outport %i, Queue %i\n", dpid, outport, qid)
             return
 
 	# Check the packet and decide how to route the packet
@@ -77,9 +78,42 @@ class Controller(EventMixin):
                 flood("# S%i: Port for %s unknown -- flooding" % (dpid, dst))
                 return
 
-            # get port and send out
+            # get port
             outport = self.macmap[dpid][dst]
-            install_enqueue(event, packet, outport, 1)
+
+            # check if same company
+            def isSameCompany(srcip, dstip):
+                for vpn in self.vpns[dpid]:
+                    if srcip in vpn and dstip in vpn:
+                        log.debug("# S%i: %s, %s same vpn", dpid, srcip, dstip)
+                        return True
+                log.debug("# S%i: %s, %s not same vpn", dpid, srcip, dstip)
+                return False
+
+            # check src and dst ip in same vpn
+            srcip = None
+            dstip = None
+            if packet.type == packet.IP_TYPE:
+                log.debug("# S%i: IP Packet (type %s)", dpid, packet.type)
+                ipPacket = packet.payload
+                srcip = ipPacket.srcip
+                dstip = ipPacket.dstip
+            elif packet.type == packet.ARP_TYPE:
+                log.debug("# S%i: ARP Packet (type %s)", dpid, packet.type)
+                arppacket = packet.payload
+                srcip = arppacket.protosrc
+                dstip = arppacket.protodst
+            else:
+                log.debug("# S%i: Unknown Packet (type %s)", dpid, packet.type)
+                install_enqueue(event, packet, outport, self.DEFAULT_QUEUE)
+                return
+
+            if isSameCompany(srcip, dstip):
+                install_enqueue(event, packet, outport, self.COMPANY_QUEUE)
+                return
+            else:
+                install_enqueue(event, packet, outport, self.EXTERNAL_QUEUE)
+                return
             return
 
         # When it knows nothing about the destination, flood but don't install the rule
@@ -93,9 +127,6 @@ class Controller(EventMixin):
             log.debug("# S%i: Message sent via port %i\n", dpid, of.OFPP_FLOOD)
             return
 
-        # Ensure own macmap is initialised
-        if dpid not in self.macmap: self.macmap[dpid] = {}
-
         # Begin
         forward()
         return
@@ -103,6 +134,10 @@ class Controller(EventMixin):
     def _handle_ConnectionUp(self, event):
         dpid = event.dpid
         log.debug("# S%i: Switch %i has come up.", dpid, dpid)
+
+        # initialise macmap and vpn lists
+        self.macmap[dpid] = {}
+        self.vpns[dpid] = []
 
         f = open('policy.in')
         firstline = f.readline().split(' ')
@@ -114,7 +149,6 @@ class Controller(EventMixin):
         fw = []
         for i in xrange(numFw):
             line = f.readline().strip().split(', ')
-
             src = line[0]
             dst = line[1]
             port = line[2]
@@ -123,10 +157,9 @@ class Controller(EventMixin):
         # get the vpns
         for i in xrange(numVpn):
             line = f.readline().strip().split(', ')
-            vpn = []
-            for host in line:
-                vpn.append(host)
-                self.vpns.append(vpn)
+            self.vpns[dpid].append(line)
+
+        log.debug("# S%i: VPN List: %s", dpid, self.vpns[dpid])
 
 	# Send the firewall policies to the switch
         def sendFirewallPolicy(connection, policy):
@@ -137,7 +170,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg1 = of.ofp_flow_mod()
-            msg1.priority = 2001
+            msg1.priority = self.FIREWALL_PRIORITY
             msg1.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg1.match.dl_type = 0x800
             msg1.match.nw_proto = 6
@@ -154,7 +187,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg2 = of.ofp_flow_mod()
-            msg2.priority = 2001
+            msg2.priority = self.FIREWALL_PRIORITY
             msg2.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg2.match.dl_type = 0x800
             msg2.match.nw_proto = 6

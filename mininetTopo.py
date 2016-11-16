@@ -85,7 +85,7 @@ def startNetwork():
             linkInfo = link[2]
             for i in [1, 2]:
                 if linkInfo["node%i" % (i)] == switch:
-                    nlink += 1
+                    nints += 1
                     port = linkInfo["port%i" % (i)]
                     firstNode = linkInfo["node1"]
                     secondNode = linkInfo["node2"]
