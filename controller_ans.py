@@ -41,11 +41,20 @@ class Controller(EventMixin):
 	# install entries to the route table
         def install_enqueue(event, packet, outport, q_id = None):
             log.debug("# S%i: Installing flow %s.%i -> %s.%i", dpid, src, inport, dst, outport)
+            #dstIp = packet.nw_dst
+            print dir(event.ofp)
+            #log.debug("# S%i: Destination IP: %s", dpid, dstIp)
             msg = of.ofp_flow_mod()
             msg.match = of.ofp_match.from_packet(packet, inport)
-            msg.actions.append(of.ofp_action_output(port = outport))
+            for vpn in self.vpns:
+                if True:
+                    pass
+            msg.actions.append(of.ofp_action_enqueue(port = outport, queue_id = 0))
             msg.data = event.ofp
-            msg.priority = 2
+            msg.priority = 2000
+            msg.idle_timeout = 0
+            msg.hard_timeout = 0
+            print msg
             event.connection.send(msg)
             log.debug("# S%i: Message sent via port %i\n", dpid, outport)
             return
@@ -70,7 +79,7 @@ class Controller(EventMixin):
 
             # get port and send out
             outport = self.macmap[dpid][dst]
-            install_enqueue(event, packet, outport, 0)
+            install_enqueue(event, packet, outport, 1)
             return
 
         # When it knows nothing about the destination, flood but don't install the rule
@@ -128,7 +137,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg1 = of.ofp_flow_mod()
-            msg1.priority = 1
+            msg1.priority = 2001
             msg1.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg1.match.dl_type = 0x800
             msg1.match.nw_proto = 6
@@ -145,7 +154,7 @@ class Controller(EventMixin):
             port = policy[2]
 
             msg2 = of.ofp_flow_mod()
-            msg2.priority = 1
+            msg2.priority = 2001
             msg2.actions.append(of.ofp_action_output(port = of.OFPP_NONE))
             msg2.match.dl_type = 0x800
             msg2.match.nw_proto = 6

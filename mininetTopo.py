@@ -42,15 +42,15 @@ class TreeTopo(Topo):
         print switches
         print self.switches()
 
-        links = []
+        self.linkConfigs = []
         for i in xrange(numLinks):
             line = f.readline().strip().split(', ')
             print line
+            self.linkConfigs.append(line)
             firstNode = line[0]
             secondNode = line[1]
-            bandwidth = int(line[2])
-            lconfig = {'bw':bandwidth}
-            links.append(self.addLink(firstNode, secondNode, **lconfig))
+            # add link without bandwidth since the bandwidth will be added later in queue
+            self.addLink(firstNode, secondNode)
 
         print self.links(True, False, True)
 
@@ -70,22 +70,29 @@ def startNetwork():
     info('** Creating QoS\n')
 
     # Create QoS Queues
-    nlink = 0
+    def getLinkSpeedBps(firstNode, secondNode):
+        for config in topo.linkConfigs:
+            if firstNode == config[0] and secondNode == config[1]:
+                # originally in Mbps, mult by 1mil to change to bps
+                return int(config[2]) * 1000000
+
+        return 0
+
+    nints = 0
     # get switch interfaces
     for link in topo.links(True, False, True):
         for switch in topo.switches():
             linkInfo = link[2]
             for i in [1, 2]:
-                #print "Link: %s\nSwitch: %s\nNode: %i" % (link, switch, i)
                 if linkInfo["node%i" % (i)] == switch:
-                    nlink+=1
-                    #print "Node %i is %s" % (i, switch)
+                    nlink += 1
                     port = linkInfo["port%i" % (i)]
-                    linkSpeed = linkInfo["bw"] * 1000000
-                    xSpeed = 100000000
-                    ySpeed = 50000000
+                    firstNode = linkInfo["node1"]
+                    secondNode = linkInfo["node2"]
+                    linkSpeed = getLinkSpeedBps(firstNode, secondNode)
+                    xSpeed = 100000000 # 100mbps
+                    ySpeed = 50000000 # 50mbps
                     interface = "%s-eth%s" % (switch, port)
-                    print "%s speed %ibps\n" % (interface, linkSpeed)
                     # OS system call
                     os.system("sudo ovs-vsctl -- set Port %s qos=@newqos \
                         -- --id=@newqos create QoS type=linux-htb other-config:max-rate=%i queues=0=@q0,1=@q1,2=@q2 \
@@ -93,7 +100,14 @@ def startNetwork():
                         -- --id=@q1 create queue other-config:min-rate=%i \
                         -- --id=@q2 create queue other-config:max-rate=%i" % (interface, linkSpeed, linkSpeed, linkSpeed, xSpeed, ySpeed))
 
-    print "QoS set up on %i interfaces" % (nlink)
+    print "QoS set up on %i interfaces" % (nints)
+
+    # OS system call
+    #os.system("sudo ovs-vsctl -- set Port S1-eth4 qos=@newqos \
+        #-- --id=@newqos create QoS type=linux-htb other-config:max-rate=10000000 queues=0=@q0,1=@q1,2=@q2 \
+        #-- --id=@q0 create queue other-config:max-rate=10000000 other-config:min-rate=10000000 \
+        #-- --id=@q1 create queue other-config:min-rate=1000000 \
+        #-- --id=@q2 create queue other-config:max-rate=500000")
 
     info('** Running CLI\n')
     CLI(net)
