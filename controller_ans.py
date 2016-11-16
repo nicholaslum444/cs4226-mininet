@@ -66,31 +66,8 @@ class Controller(EventMixin):
 
             # Store the incoming port
             self.macmap[dpid][src] = inport
-            #print("# S%i: %s" % (dpid, self.macmap))
 
-            # If multicast, flood
-            if dst.is_multicast:
-                flood("# S%i: Multicast to %s -- flooding" % (dpid, dst))
-                return
-
-            # If dst port not found, flood
-            if dst not in self.macmap[dpid]:
-                flood("# S%i: Port for %s unknown -- flooding" % (dpid, dst))
-                return
-
-            # get port
-            outport = self.macmap[dpid][dst]
-
-            # check if same company
-            def isSameCompany(srcip, dstip):
-                for vpn in self.vpns[dpid]:
-                    if srcip in vpn and dstip in vpn:
-                        log.debug("# S%i: %s, %s same vpn", dpid, srcip, dstip)
-                        return True
-                log.debug("# S%i: %s, %s not same vpn", dpid, srcip, dstip)
-                return False
-
-            # check src and dst ip in same vpn
+            # get src and dst ip
             srcip = None
             dstip = None
             if packet.type == packet.IP_TYPE:
@@ -105,26 +82,52 @@ class Controller(EventMixin):
                 dstip = arppacket.protodst
             else:
                 log.debug("# S%i: Unknown Packet (type %s)", dpid, packet.type)
-                install_enqueue(event, packet, outport, self.DEFAULT_QUEUE)
+                srcip = None
+                dstip = None
+
+            # check src and dst ip in same vpn, set qid
+            qid = self.DEFAULT_QUEUE
+            if srcip == None or dstip == None:
+                qid = self.DEFAULT_QUEUE
+            elif isSameCompany(srcip, dstip):
+                qid = self.COMPANY_QUEUE
+            else:
+                qip = self.EXTERNAL_QUEUE
+
+            # If multicast, flood
+            if dst.is_multicast:
+                flood("# S%i: Multicast to %s -- flooding" % (dpid, dst))
                 return
 
-            if isSameCompany(srcip, dstip):
-                install_enqueue(event, packet, outport, self.COMPANY_QUEUE)
+            # If dst port not found, flood
+            if dst not in self.macmap[dpid]:
+                flood("# S%i: Port for %s unknown -- flooding" % (dpid, dst))
                 return
-            else:
-                install_enqueue(event, packet, outport, self.EXTERNAL_QUEUE)
-                return
+
+            # get port and send
+            outport = self.macmap[dpid][dst]
+            install_enqueue(event, packet, outport, qid)
             return
 
+        # check if same company
+        def isSameCompany(srcip, dstip):
+            for vpn in self.vpns[dpid]:
+                if srcip in vpn and dstip in vpn:
+                    log.debug("# S%i: %s, %s same vpn", dpid, srcip, dstip)
+                    return True
+            log.debug("# S%i: %s, %s not same vpn", dpid, srcip, dstip)
+            return False
+
+
         # When it knows nothing about the destination, flood but don't install the rule
-        def flood (message = None):
+        def flood (message):
             log.debug(message)
             msg = of.ofp_packet_out()
             msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
             msg.data = event.ofp
             msg.in_port = inport
             event.connection.send(msg)
-            log.debug("# S%i: Message sent via port %i\n", dpid, of.OFPP_FLOOD)
+            log.debug("# S%i: Message sent: Outport %i\n", dpid, of.OFPP_FLOOD)
             return
 
         # Begin
