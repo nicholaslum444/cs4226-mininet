@@ -36,9 +36,11 @@ class TreeTopo(Topo):
         switches = []
         for i in xrange(numSwitches):
             sconfig = {'dpid': "%016x" % (i+1)}
-            switches.append(self.addSwitch('S%d' % (i+1), **sconfig))
+            switch = self.addSwitch('S%d' % (i+1), **sconfig)
+            switches.append(switch)
 
         print switches
+        print self.switches()
 
         links = []
         for i in xrange(numLinks):
@@ -49,6 +51,8 @@ class TreeTopo(Topo):
             bandwidth = int(line[2])
             lconfig = {'bw':bandwidth}
             links.append(self.addLink(firstNode, secondNode, **lconfig))
+
+        print self.links(True, False, True)
 
 
 def startNetwork():
@@ -66,11 +70,30 @@ def startNetwork():
     info('** Creating QoS\n')
 
     # Create QoS Queues
-    os.system('sudo ovs-vsctl -- set Port eth0 qos=@newqos \
-                -- --id=@newqos create QoS type=linux-htb other-config:max-rate=1000000 queues=0=@q0,1=@q1,2=@q2 \
-                -- --id=@q0 create queue other-config:max-rate=600000 other-config:min-rate=600000 \
-                -- --id=@q1 create queue other-config:min-rate=100000000 \
-                -- --id=@q2 create queue other-config:max-rate=50000000')
+    nlink = 0
+    # get switch interfaces
+    for link in topo.links(True, False, True):
+        for switch in topo.switches():
+            linkInfo = link[2]
+            for i in [1, 2]:
+                #print "Link: %s\nSwitch: %s\nNode: %i" % (link, switch, i)
+                if linkInfo["node%i" % (i)] == switch:
+                    nlink+=1
+                    #print "Node %i is %s" % (i, switch)
+                    port = linkInfo["port%i" % (i)]
+                    linkSpeed = linkInfo["bw"] * 1000000
+                    xSpeed = 100000000
+                    ySpeed = 50000000
+                    interface = "%s-eth%s" % (switch, port)
+                    print "%s speed %ibps\n" % (interface, linkSpeed)
+                    # OS system call
+                    os.system("sudo ovs-vsctl -- set Port %s qos=@newqos \
+                        -- --id=@newqos create QoS type=linux-htb other-config:max-rate=%i queues=0=@q0,1=@q1,2=@q2 \
+                        -- --id=@q0 create queue other-config:max-rate=%i other-config:min-rate=%i \
+                        -- --id=@q1 create queue other-config:min-rate=%i \
+                        -- --id=@q2 create queue other-config:max-rate=%i" % (interface, linkSpeed, linkSpeed, linkSpeed, xSpeed, ySpeed))
+
+    print "QoS set up on %i interfaces" % (nlink)
 
     info('** Running CLI\n')
     CLI(net)

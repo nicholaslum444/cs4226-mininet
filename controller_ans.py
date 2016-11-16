@@ -161,8 +161,8 @@ class Controller(EventMixin):
         for policy in fw:
             sendFirewallPolicy(event.connection, policy)
 
-        for vpn in vpns:
-            sendVpnPolicy(event.connection, vpn)
+        for vpn in self.vpns:
+            pass#sendVpnPolicy(event.connection, vpn)
 
         return
 
